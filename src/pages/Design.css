@@ -1,0 +1,52 @@
+.App {
+  text-align: center;
+}
+
+.App-logo {
+  height: 40vmin;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .App-logo {
+    animation: App-logo-spin infinite 20s linear;
+  }
+}
+
+.App-header {
+  padding: 0 24px;
+  background-color: white;
+  border-bottom: 1px solid #ececec;
+}
+
+.App-link {
+  color: #61dafb;
+}
+
+@keyframes App-logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.logo-container {
+  width: 46px; /* Adjust the width as needed */
+  height: 46px; /* Adjust the height as needed */
+  border-radius: 50%; /* Make the container round-shaped */
+  overflow: hidden; /* Hide any part of the image that goes beyond the container's border */
+}
+
+.logo-container img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* Scale the image to fit the container while maintaining its aspect ratio */
+}
+
+.logo-title {
+  padding-left: 16px;
+  font-size: 20px;
+  font-weight: 500;
+}
