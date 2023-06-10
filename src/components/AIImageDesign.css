@@ -19,10 +19,96 @@
     background: #f6f7f9;
     flex-grow: 1;
     height: 100%;
+    padding: 56px;
+}
+
+.generate-empty-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    border: 2px dashed #d9d9d9;
+    border-radius: 24px;
 }
 
 .editor-title {
     color: #222529;
     font-weight: 600;
     font-size: 24px;
+    margin-block-start: 0.5em;
+    margin-block-end: 0.5em;
+}
+
+.sketch-uploader {
+    justify-self: stretch;
+    align-self: center;
+    width: 200px;
+}
+
+div.ant-upload {
+    width: 100%;
+}
+
+.color-selector-container {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    margin-top: 16px;
+}
+
+.color-selector-title {
+    color: #222529;
+    font-weight: 600;
+    font-size: 16px;
+    margin-block-start: 0.5em;
+    margin-block-end: 0.5em;
+    margin-right: 16px;
+}
+
+.color-selector-name {
+    color: #7f8792;
+    font-size: 12px;
+    margin-left: 12px;
+}
+
+.ant-color-picker-input-container {
+    height: 0; 
+    overflow: hidden;
+}
+
+.ant-color-picker-select {
+    height: 0;
+    overflow: hidden;
+    margin: 0 !important;
+}
+
+.ant-color-picker-slider-container {
+    height: 0;
+    overflow: hidden;
+}
+
+.ant-color-picker-inner-panel-divider {
+    padding: 0;
+    margin: 0 !important;
+    margin-bottom: 8px !important;
+}
+
+.generate-empty-img {
+    width: 320px;
+    height: 180px;
+    margin-bottom: 16px;
+}
+
+.generate-empty-title{
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 16px;
+}
+
+.generate-empty-desc {
+    color: gray;
+    font-size: 14px;
+    font-weight: 400;
 }

@@ -18,7 +18,7 @@ const AINavigation: React.FC = () => {
                 onClick={() => toggleSelected(0)}
             >
                 <CoatIcon className="navigation-item-img"/>
-                <span className='navigation-item-text'>设计</span>
+                <span className='navigation-item-text'>羽绒服</span>
             </div>
         </div>
     )
