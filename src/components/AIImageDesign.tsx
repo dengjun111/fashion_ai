@@ -3,8 +3,9 @@ import { Button, UploadProps } from 'antd';
 import type { RadioChangeEvent } from 'antd';
 import type { Color } from 'antd/es/color-picker';
 import { ColorPicker } from "antd";
-import { message, Upload, Card, Row, Col, Radio } from 'antd';
+import { message, Upload, Card, Row, Col, Radio, UploadFile  } from 'antd';
 import { CloudUploadOutlined } from '@ant-design/icons';
+import ImageGrid from "./ImageGrid";
 import './AIImageDesign.css'
 import LongImage from '../assets/long.png'
 import ShortImage from '../assets/short.png'
@@ -35,15 +36,64 @@ const props: UploadProps = {
     },
 };
 
+interface CustomRequestOptions {
+    file: UploadFile;
+    onSuccess: (response: any, file: UploadFile) => void;
+    onError: (error: any, response: any) => void;
+    onProgress: (e: { percent: number }, file: UploadFile) => void;
+    data?: Object;
+    headers?: Object;
+    withCredentials?: boolean;
+    action?: string;
+  }
+
 const SketchUpload: React.FC = () => {
-    return <Dragger {...props}>
-        <p className="ant-upload-drag-icon">
-            <CloudUploadOutlined style={{ fontSize: "28px", color: "gray" }} />
-        </p>
-        <p className="ant-upload-text" style={{ fontSize: "15px" }}>参考图</p>
-        <p className="ant-upload-hint" style={{ marginBlockEnd: "0.5em", marginBlockStart: "0.5em" }}>
-            支持拖拽上传
-        </p>
+    const [imageBase64, setImageBase64] = useState('');
+
+    const beforeUpload = (file: UploadFile): boolean => {
+        const isImage = file.type?.startsWith('image/');
+        if (!isImage) {
+            message.error('You can only upload image file!');
+        }
+        return isImage || false;
+    }
+
+    const customRequest = (options: any) => {
+        const file: File = options.file;
+        const reader = new FileReader();
+        reader.onload = (e: ProgressEvent<FileReader>) => {
+            if (e.target && e.target.result) {
+                const base64 = e.target.result as string;
+                setImageBase64(base64);
+            }
+        };
+        reader.readAsDataURL(file);
+    };
+
+    const dragProps = {
+        name: 'file',
+        multiple: false,
+        beforeUpload,
+        showUploadList: false,
+        customRequest,
+    }
+
+
+    return <Dragger {...dragProps}>
+        {imageBase64 ? (
+            <div style={{ marginTop: '16px' }}>
+                <img src={imageBase64} alt="Uploaded" style={{ maxWidth: '100%', maxHeight: '300px' }} />
+            </div>
+        ) : (
+            <div>
+                <p className="ant-upload-drag-icon">
+                    <CloudUploadOutlined style={{ fontSize: "28px", color: "gray" }} />
+                </p>
+                <p className="ant-upload-text" style={{ fontSize: "15px" }}>参考图</p>
+                <p className="ant-upload-hint" style={{ marginBlockEnd: "0.5em", marginBlockStart: "0.5em" }}>
+                    支持拖拽上传
+                </p>
+            </div>)}
     </Dragger>
 }
 
@@ -91,18 +141,18 @@ const StyleSelector: React.FC = () => {
     return <Row style={{marginBottom:'16px'}} gutter={8}>
         <Col style={{ paddingBottom: "16px", paddingTop: "8px" }} span={24}> <h1 className="color-selector-title">款式：</h1></Col>
         <Col span={8}>
-            <Card hoverable cover={<img alt="long" src={LongImage} />}>
-                <Card.Meta title="长款" />
+            <Card bodyStyle={{ padding: 0, height:"30px" }} hoverable cover={<img alt="long" src={LongImage} style={{padding:"2px"}} />}>
+                <Card.Meta style={{textAlign:"center"}} title="长款" />
             </Card>
         </Col>
         <Col span={8}>
-            <Card hoverable cover={<img alt="middle" src={MiddleImage} />}>
-                <Card.Meta title="中款" />
+            <Card bodyStyle={{ padding: 0, height:"30px" }} style={{border: "1px solid blue"}} hoverable cover={<img alt="middle" src={MiddleImage} style={{padding:"2px"}} />}>
+                <Card.Meta style={{textAlign:"center"}} title="中款" />
             </Card>
         </Col>
         <Col span={8}>
-            <Card hoverable cover={<img alt="short" src={ShortImage} />}>
-                <Card.Meta title="短款" />
+            <Card bodyStyle={{ padding: 0, height:"30px" }} hoverable cover={<img alt="short" src={ShortImage} style={{padding:"2px"}} />}>
+                <Card.Meta style={{textAlign:"center"}} title="短款" />
             </Card>
         </Col>
     </Row>
@@ -162,6 +212,7 @@ const EditorPanel: React.FC = () => {
     return <div className="AIImage-edit-panel">
         <h1 className="editor-title">设计参数</h1>
         <SketchUpload />
+        <div style={{padding:"20px"}}></div>
         <ColorSelector />
         <StyleSelector />
         <ClothSelector />
@@ -170,7 +221,7 @@ const EditorPanel: React.FC = () => {
     </div>
 }
 
-const ResultPanel: React.FC = () => {
+const EmptyResult: React.FC = () => {
     return <div className="AIImage-result-panel">
         <div className="generate-empty-container">
             <img className="generate-empty-img" src={EmptyImage} alt="empty" />
@@ -180,10 +231,18 @@ const ResultPanel: React.FC = () => {
     </div>
 }
 
+const testImages = [
+    "https://cdn.discordapp.com/attachments/1091550235068747820/1113745900607643780/ericdengjun_3581485159994937_b5a7f64a-1d79-4546-ae64-3e1089f91a7b.png",
+    "https://cdn.discordapp.com/attachments/1091550235068747820/1113745869045506089/ericdengjun_3581485159994937_25baad77-0021-4630-b44f-25a49d9ba800.png",
+    "https://cdn.discordapp.com/attachments/1091550235068747820/1113745851253260338/ericdengjun_3581485159994937_cff0c316-c8cc-4add-b4d1-f0214e4b42d5.png",
+    "https://cdn.discordapp.com/attachments/1091550235068747820/1113745838032814100/ericdengjun_3581485159994937_af5444ab-999a-4bb9-9304-c58420ebb570.png"
+];
+
 const AIImageDesign: React.FC = () => {
+    const [images, setImages] = useState<string[]>(testImages);
     return <div className="AIImage-Design-container">
         <EditorPanel />
-        <ResultPanel />
+        {images.length === 0 ? <EmptyResult /> : <ImageGrid images={images} />}
     </div>
 }
 

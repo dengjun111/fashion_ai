@@ -1,0 +1,15 @@
+.card-buttons {
+    display: none;
+}
+
+.ant-card-hoverable:hover .card-buttons {
+    display: flex;
+    justify-content: space-around;
+}
+
+.image-grid-container {
+    background: #f6f7f9;
+    padding: 56px;
+    overflow-y: scroll;
+    max-height: calc(100vh - 112px);
+}
