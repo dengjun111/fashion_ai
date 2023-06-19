@@ -5,7 +5,7 @@ import type { Color } from 'antd/es/color-picker';
 import { ColorPicker } from "antd";
 import { message, Upload, Card, Row, Col, Radio, UploadFile  } from 'antd';
 import { CloudUploadOutlined } from '@ant-design/icons';
-import ImageGrid from "./ImageGrid";
+import ImageGrid, {ImageCardProps} from "./ImageGrid";
 import './AIImageDesign.css'
 import LongImage from '../assets/long.png'
 import ShortImage from '../assets/short.png'
@@ -45,11 +45,14 @@ interface CustomRequestOptions {
     headers?: Object;
     withCredentials?: boolean;
     action?: string;
-  }
+}
 
-const SketchUpload: React.FC = () => {
-    const [imageBase64, setImageBase64] = useState('');
+interface SketchUploadProps {
+    handleImageUpload: (base64String: string) => void;
+    base64String: string | undefined;
+}
 
+const SketchUpload: React.FC<SketchUploadProps> = ({handleImageUpload, base64String}) => {
     const beforeUpload = (file: UploadFile): boolean => {
         const isImage = file.type?.startsWith('image/');
         if (!isImage) {
@@ -64,7 +67,7 @@ const SketchUpload: React.FC = () => {
         reader.onload = (e: ProgressEvent<FileReader>) => {
             if (e.target && e.target.result) {
                 const base64 = e.target.result as string;
-                setImageBase64(base64);
+                handleImageUpload(base64);
             }
         };
         reader.readAsDataURL(file);
@@ -80,9 +83,9 @@ const SketchUpload: React.FC = () => {
 
 
     return <Dragger {...dragProps}>
-        {imageBase64 ? (
+        {base64String && base64String.length > 0 ? (
             <div style={{ marginTop: '16px' }}>
-                <img src={imageBase64} alt="Uploaded" style={{ maxWidth: '100%', maxHeight: '300px' }} />
+                <img src={base64String} alt="Uploaded" style={{ maxWidth: '100%', maxHeight: '300px' }} />
             </div>
         ) : (
             <div>
@@ -206,18 +209,23 @@ const MadeSelector: React.FC = () => {
     );
 };
 
+interface EditPanelProps {
+    handleSubmit: () => void;
+    handleImageUpload: (base64String: string) => void;
+    base64String: string | undefined;
+}
 
 
-const EditorPanel: React.FC = () => {
+const EditorPanel: React.FC<EditPanelProps> = ({handleSubmit, base64String, handleImageUpload}) => {
     return <div className="AIImage-edit-panel">
         <h1 className="editor-title">设计参数</h1>
-        <SketchUpload />
+        <SketchUpload base64String={base64String} handleImageUpload={handleImageUpload}/>
         <div style={{padding:"20px"}}></div>
         <ColorSelector />
         <StyleSelector />
         <ClothSelector />
-        <MadeSelector />
-        <Button type="primary" block>生成</Button>
+        {/* <MadeSelector /> */}
+        <Button type="primary" block onClick={handleSubmit}>生成</Button>
     </div>
 }
 
@@ -238,10 +246,98 @@ const testImages = [
     "https://cdn.discordapp.com/attachments/1091550235068747820/1113745838032814100/ericdengjun_3581485159994937_af5444ab-999a-4bb9-9304-c58420ebb570.png"
 ];
 
+type ApiResponse = {
+    status: 'NOT_START' | 'SUBMITTED' | 'IN_PROGRESS' | 'SUCCESS' | 'FAILURE';
+};
+
+async function getApiStatus(taskID: string): Promise<ApiResponse> {
+    // Replace this with a call to the real API
+    const response = await fetch(`/mj/task/${taskID}/fetch`);
+    const data: ApiResponse = await response.json();
+    return data;
+}
+
+
 const AIImageDesign: React.FC = () => {
-    const [images, setImages] = useState<string[]>(testImages);
+    const [imageBase64, setImageBase64] = useState("");
+    var pendingImage = "";
+    const [images, setImages] = useState<ImageCardProps[]>([]);
+    var timerId = 0;
+
+    const checkStatus = async () => {
+        const response = await getApiStatus(pendingImage);
+
+        if (response.status === 'SUCCESS') {
+            console.log('API job is finished');
+            if (timerId) {
+                clearInterval(timerId);
+                timerId = 0;
+            }
+            setImages((prevImages) =>
+                prevImages.map((image) => {
+                    let tmpImage = { ...image };
+                    if (tmpImage.pendingID === pendingImage) {
+                        tmpImage.status = 'generated';
+                    }
+                    return tmpImage;
+                })
+            );
+        } else {
+            console.log('API job is still pending');
+        }
+    };
+    async function postData(url = '', data = {}) {
+        const response = await fetch(url, {
+          method: 'POST', // *GET, POST, PUT, DELETE, etc.
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(data) // body data type must match "Content-Type" header
+        });
+      
+        return response.json(); // parses JSON response into native JavaScript objects
+      }
+
+      const handleSubmit = async () => {
+        const data = {
+          prompt: 'a woman\'s down coat, blue color, white background --no person'
+        };
+    
+        try {
+          const response = await postData('/mj/submit/imagine', data);
+        //   const response = {
+        //     code: 1,
+        //     result: '0564942927917391',
+        //     description: 'success'
+        //   }
+          if (response.code === 1) {
+            message.success(response.description);
+            pendingImage = response.result;
+            let tmpImages = [...images];
+            for (let i = 0; i < 4; i++) {
+                tmpImages.push({
+                    status: "generating",
+                    src: "",
+                    message: "正在生成中...",
+                    pendingID: pendingImage,
+                    imageIndex: i
+                });
+            }
+            setImages(tmpImages);
+            const interval = 5000; // 0.5 seconds
+            const id = window.setInterval(checkStatus, interval);
+            timerId = id;
+          }
+
+          console.log('Response:', response);
+        } catch (error) {
+          console.error('Error:', error);
+        }
+      };
     return <div className="AIImage-Design-container">
-        <EditorPanel />
+        <EditorPanel handleSubmit={handleSubmit} base64String={imageBase64} handleImageUpload={(base64String) => {
+            setImageBase64(base64String);
+        }}/>
         {images.length === 0 ? <EmptyResult /> : <ImageGrid images={images} />}
     </div>
 }
