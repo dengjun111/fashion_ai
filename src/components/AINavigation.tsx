@@ -3,7 +3,7 @@ import './AINavigation.css'
 import  { ReactComponent as CoatIcon } from '../assets/coat.svg'
 
 const AINavigation: React.FC = () => {
-    const [selected, setSelected] = useState(-1);
+    const [selected, setSelected] = useState(0);
 
     const toggleSelected = (index: number) => {
         setSelected(index);
