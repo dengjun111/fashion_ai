@@ -38,11 +38,11 @@ const ImageCard: React.FC<ImageCardProps> = ({ image, handleDelete }) => {
 
     let imageSrc = "";
 
-    if (src && src.length > 0) {
-        imageSrc = src;
-    } else if (sliceImage && sliceImage.length > 0) {
+    if (sliceImage && sliceImage.length > 0) {
         imageSrc = sliceImage;
-    }
+    } else if (src && src.length > 0) {
+        imageSrc = src;
+    }  
 
     return (
         <Card

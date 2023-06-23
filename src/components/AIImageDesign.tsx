@@ -342,11 +342,31 @@ const AIImageDesign: React.FC = () => {
     var timerId = 0;
 
     useEffect(() => {
-        const loadImages = () => {
+        const loadImages = async () => {
             const imagesString = localStorage.getItem("images");
             if (imagesString) {
                 const imageFromStorage = JSON.parse(imagesString) as ImageData[];
-                setImages(imageFromStorage);
+
+                var newImages: ImageData[] = [];
+                var slicedImages: Set<string> = new Set();
+
+                for (let i = 0; i < imageFromStorage.length; i++) {
+                    const image = imageFromStorage[i];
+                    if (image.status === "generated" && image.src && !slicedImages.has(image.src)) {
+                        let slices = await SliceImage(image.src);
+                        slicedImages.add(image.src);
+                        imageFromStorage.forEach((tmp) => {
+                            if (tmp.imageID === image.imageID && tmp.src === image.src) {
+                                newImages.push({
+                                    ...tmp,
+                                    sliceImage: slices[tmp.imageIndex || 0]
+                                })
+                            }
+                        });
+                    }
+                };
+                
+                setImages(newImages);
             }
         };
         loadImages();
@@ -354,7 +374,16 @@ const AIImageDesign: React.FC = () => {
 
     useEffect(() => {
         if (images.length > 0) {
-            const imagesString = JSON.stringify(images);
+            const imagesString = JSON.stringify(images.map((image) => {
+                return {
+                    status: image.status,
+                    message: image.message,
+                    imageIndex: image.imageIndex,
+                    imageID: image.imageID,
+                    src: image.src,
+                    progress: image.progress
+                }
+            }));
             localStorage.setItem('images', imagesString);
         }
     }, [images]);
@@ -378,6 +407,7 @@ const AIImageDesign: React.FC = () => {
                         tmpImage.message = "完成！";
                         tmpImage.progress = parseInt(response.progress.replace("%", ""))
                         tmpImage.sliceImage = slices[tmpImage.imageIndex || 0];
+                        tmpImage.src = imageUrl;
                     }
                     return tmpImage;
                 })
@@ -430,14 +460,21 @@ const AIImageDesign: React.FC = () => {
     }
 
     const handleDelete = (image: ImageData) => {
+        var deleteLastOne = false;
         setImages((prevImages) => prevImages.filter(
             (tmp) => {
                 if (tmp.imageID === image.imageID && tmp.imageIndex === image.imageIndex) {
+                    if (images.length === 1) {
+                        deleteLastOne = true;
+                    }
                     return false;
                 }
                 return true;
             }
         ));
+        if (deleteLastOne) {
+            localStorage.removeItem("images");
+        }
     }
 
     const mockSubmit = (prompt: string, base64Image: string | undefined) => {
