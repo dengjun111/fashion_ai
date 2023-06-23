@@ -1,11 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from 'antd';
 import type { RadioChangeEvent } from 'antd';
 import type { Color } from 'antd/es/color-picker';
 import { ColorPicker } from "antd";
 import { message, Upload, Card, Row, Col, Radio, UploadFile, Tooltip } from 'antd';
 import { CloudUploadOutlined, DeleteOutlined } from '@ant-design/icons';
-import ImageGrid, { ImageCardProps } from "./ImageGrid";
+import ImageGrid, { ImageData } from "./ImageGrid";
 import { ColorNames, ColorCodes } from './Colors'
 import { SliceImage } from './SliceImage'
 import './AIImageDesign.css'
@@ -62,7 +62,7 @@ const SketchUpload: React.FC<SketchUploadProps> = ({ handleImageUpload, base64St
 
     return <Dragger {...dragProps}>
         {imageString && imageString.length > 0 ? (
-            <div className="uploader" style={{ marginTop: '16px', position:"relative"}}>
+            <div className="uploader" style={{ marginTop: '16px', position: "relative" }}>
                 <img src={imageString} alt="Uploaded" style={{ maxWidth: '100%', maxHeight: '300px' }} />
                 <Tooltip title="清除" >
                     <Button className='tooltip-button' icon={<DeleteOutlined />} onClick={handleClear} />
@@ -233,36 +233,12 @@ const SilhouetteSelector: React.FC<SilhouetteSelectorProps> = ({ updateSilhouett
     );
 };
 
-// const MadeSelector: React.FC = () => {
-//     const [value, setValue] = useState(1);
-
-//     const onChange = (e: RadioChangeEvent) => {
-//         console.log('radio checked', e.target.value);
-//         setValue(e.target.value);
-//     };
-
-//     return (
-//         <div style={{marginBottom:'16px'}}>
-//             <h1 style={{marginBottom:'8px'}} className="color-selector-title">品牌：</h1>
-//             <Radio.Group onChange={onChange} value={value}>
-//                 <Radio value={1}>加拿大鹅</Radio>
-//                 <Radio value={2}>波司登</Radio>
-//                 <Radio value={3}>北面</Radio>
-//                 <Radio value={4}>哥伦比亚</Radio>
-//                 <Radio value={5}>马克华菲</Radio>
-//                 <Radio value={6}>爱斯卡达</Radio>
-//                 <Radio value={7}>阿迪达斯</Radio>
-//             </Radio.Group>
-//         </div>
-//     );
-// };
-
 interface EditPanelProps {
     handleSubmit: (prompt: string, base64Image: string | undefined) => void;
 }
 
 function generatePrompt(color: string, style: string, cloth: string, silhouette: string) {
-    return `a woman's ${style.length > 0 ? style : "Down Jacket"},${color.length > 0 ? " " + color + " color," : ""}${cloth.length > 0 ? " made of " + cloth + " fabric," : ""}${silhouette.length > 0 ? " " + silhouette + "," : ""} white background --no person`
+    return `a woman's ${style.length > 0 ? style : "Down Jacket"},${color.length > 0 ? " " + color + " color," : ""}${cloth.length > 0 ? " made of " + cloth + " fabric," : ""}${silhouette.length > 0 ? " " + silhouette + "," : ""} white background --no woman, human, person, man`
 }
 
 
@@ -326,23 +302,62 @@ async function getApiStatus(taskID: string): Promise<ApiResponse> {
     return data;
 }
 
-const testImages = [
+const testImages: ImageData[] = [
     {
         status: "submited",
         message: "已提交，等待中..."
     },
     {
         status: "generated",
-        message: "已生成！",
-        src: "https://cdn.discordapp.com/attachments/1091550235068747820/1121268367337193492/ericdengjun_2396736700192552_a_womans_Down_Jacket_red_color_mad_b8e52f25-c607-4502-aebc-6341319509e2.png"
+        message: "正在生成中...: 31%",
+        imageIndex: 0,
+        src: "https://cdn.discordapp.com/attachments/1091550235068747820/1121592705387081808/ericdengjun_8574459851782432_a_womans_Long_Down_Coat_white_back_3b95cb7f-964f-4f15-a570-e1ad9f02f569.png"
+    },
+    {
+        status: "in progress",
+        message: "正在生成中...: 31%",
+        imageIndex: 1,
+        src: "https://cdn.discordapp.com/attachments/1091550235068747820/1121592705387081808/ericdengjun_8574459851782432_a_womans_Long_Down_Coat_white_back_3b95cb7f-964f-4f15-a570-e1ad9f02f569.png"
+    },
+    {
+        status: "in progress",
+        message: "正在生成中...: 31%",
+        imageIndex: 2,
+        src: "https://cdn.discordapp.com/attachments/1091550235068747820/1121592705387081808/ericdengjun_8574459851782432_a_womans_Long_Down_Coat_white_back_3b95cb7f-964f-4f15-a570-e1ad9f02f569.png"
+    },
+    {
+        status: "in progress",
+        message: "正在生成中...: 31%",
+        imageIndex: 3,
+        src: "https://cdn.discordapp.com/attachments/1091550235068747820/1121592705387081808/ericdengjun_8574459851782432_a_womans_Long_Down_Coat_white_back_3b95cb7f-964f-4f15-a570-e1ad9f02f569.png"
     }
 ];
 
 
+
+
 const AIImageDesign: React.FC = () => {
     var pendingImage = "";
-    const [images, setImages] = useState<ImageCardProps[]>([]);
+    const [images, setImages] = useState<ImageData[]>([]);
     var timerId = 0;
+
+    useEffect(() => {
+        const loadImages = () => {
+            const imagesString = localStorage.getItem("images");
+            if (imagesString) {
+                const imageFromStorage = JSON.parse(imagesString) as ImageData[];
+                setImages(imageFromStorage);
+            }
+        };
+        loadImages();
+    }, []);
+
+    useEffect(() => {
+        if (images.length > 0) {
+            const imagesString = JSON.stringify(images);
+            localStorage.setItem('images', imagesString);
+        }
+    }, [images]);
 
     const checkStatus = async () => {
         const response = await getApiStatus(pendingImage);
@@ -369,17 +384,16 @@ const AIImageDesign: React.FC = () => {
             );
         } else if (response.status === 'IN_PROGRESS') {
             let imageUrl = response.imageUrl;
-            if (false && imageUrl && imageUrl.length > 0) {
-                let slices = await SliceImage(imageUrl);
+            if (imageUrl && imageUrl.length > 0) {
                 const percent = parseInt(response.progress.replace("%", ""))
                 setImages((prevImages) =>
                     prevImages.map((image) => {
                         let tmpImage = { ...image };
                         if (tmpImage.imageID === pendingImage && (!tmpImage.progress || tmpImage.progress < percent)) {
                             tmpImage.status = 'in progress';
-                            tmpImage.message = "生成中：" + response.progress;
+                            tmpImage.message = "生成中..." + response.progress;
                             tmpImage.progress = percent
-                            tmpImage.sliceImage = slices[tmpImage.imageIndex || 0];
+                            tmpImage.sliceImage = imageUrl;
                         }
                         return tmpImage;
                     }))
@@ -389,7 +403,7 @@ const AIImageDesign: React.FC = () => {
                         let tmpImage = { ...image };
                         if (tmpImage.imageID === pendingImage) {
                             tmpImage.status = 'in progress';
-                            tmpImage.message = "生成中：" + response.progress;
+                            tmpImage.message = "排队中，请稍后..."
                         }
                         return tmpImage;
                     }))
@@ -413,6 +427,31 @@ const AIImageDesign: React.FC = () => {
         });
 
         return response.json(); // parses JSON response into native JavaScript objects
+    }
+
+    const handleDelete = (image: ImageData) => {
+        setImages((prevImages) => prevImages.filter(
+            (tmp) => {
+                if (tmp.imageID === image.imageID && tmp.imageIndex === image.imageIndex) {
+                    return false;
+                }
+                return true;
+            }
+        ));
+    }
+
+    const mockSubmit = (prompt: string, base64Image: string | undefined) => {
+        let tmpImages = [...images];
+        for (let i = 0; i < 4; i++) {
+            tmpImages.push({
+                status: "generated",
+                message: "生成完成",
+                imageID: "0564942927917391",
+                imageIndex: i,
+                src: "https://cdn.discordapp.com/attachments/1091550235068747820/1121592705387081808/ericdengjun_8574459851782432_a_womans_Long_Down_Coat_white_back_3b95cb7f-964f-4f15-a570-e1ad9f02f569.png"
+            });
+        }
+        setImages(tmpImages);
     }
 
     const handleSubmit = async (prompt: string, base64Image: string | undefined) => {
@@ -446,14 +485,13 @@ const AIImageDesign: React.FC = () => {
                 timerId = id;
             }
 
-            console.log('Response:', response);
         } catch (error) {
             console.error('Error:', error);
         }
     };
     return <div className="AIImage-Design-container">
         <EditorPanel handleSubmit={handleSubmit} />
-        {images.length === 0 ? <EmptyResult /> : <ImageGrid images={images} />}
+        {images.length === 0 ? <EmptyResult /> : <ImageGrid images={images} handleDelete={handleDelete} />}
     </div>
 }
 

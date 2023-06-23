@@ -18,3 +18,41 @@
 .tooltip-button {
     margin: 4px;
 }
+
+.progress-container {
+    width: 100%;
+    height: 300px;
+    overflow: hidden;
+    display: flex !important;
+    align-content: center;
+    justify-content: center;
+    flex-direction: column;
+    position: relative;
+}
+
+.progress-container img {
+    position: absolute;
+    width: 200%;
+    height: 200%;
+    z-index: 0;
+}
+
+.progress-container .progress-image-0 {
+    left: 0;
+    top: 0;
+}
+
+.progress-container .progress-image-1 {
+    left: -100%;
+    top: 0;
+}
+
+.progress-container .progress-image-2 {
+    left: 0;
+    top: -100%;
+}
+
+.progress-container .progress-image-3 {
+    left: -100%;
+    top: -100%;
+}

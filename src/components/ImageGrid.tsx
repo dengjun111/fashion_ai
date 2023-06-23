@@ -1,9 +1,9 @@
-import React, { useState, useRef } from 'react';
-import { Row, Col, Card, Spin, Image, Tooltip, Button, message } from 'antd';
-import { DownloadOutlined, ZoomInOutlined, AppstoreAddOutlined } from '@ant-design/icons';
+import React, { useState } from 'react';
+import { Row, Col, Card, Spin, Image, Tooltip, Button, Modal } from 'antd';
+import { DeleteOutlined, ZoomInOutlined, AppstoreAddOutlined } from '@ant-design/icons';
 import './ImageGrid.css';
 
-export interface ImageCardProps {
+export interface ImageData {
     src?: string;
     sliceImage?: string;
     status: string;
@@ -13,16 +13,28 @@ export interface ImageCardProps {
     imageIndex?: number;
 }
 
-const ImageCard: React.FC<ImageCardProps> = ({ sliceImage, src, status, imageID, imageIndex, message }) => {
+export interface ImageCardProps {
+    image: ImageData;
+    handleDelete: (image: ImageData) => void;
+}
+
+
+
+const ImageCard: React.FC<ImageCardProps> = ({ image, handleDelete }) => {
+
+    const { src, sliceImage, status, message, imageIndex } = image;
 
     const [isPreviewVisible, setIsPreviewVisible] = React.useState(false);
-
-
 
     const handlePreview = () => {
         setIsPreviewVisible(true);
     };
-    const [loading, setLoading] = useState(status !== 'in progress' && status !== 'generated');
+
+    const [loading, setLoading] = useState(status !== 'generated');
+
+    if (status === 'generated' && loading) {
+        setLoading(false);
+    }
 
     let imageSrc = "";
 
@@ -32,15 +44,6 @@ const ImageCard: React.FC<ImageCardProps> = ({ sliceImage, src, status, imageID,
         imageSrc = sliceImage;
     }
 
-    const handleDownload = (imageUrl: string) => {
-        const link = document.createElement('a');
-        link.href = imageUrl;
-        link.download = 'image.png';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    };
-
     return (
         <Card
             hoverable
@@ -49,7 +52,7 @@ const ImageCard: React.FC<ImageCardProps> = ({ sliceImage, src, status, imageID,
             cover=
 
             {
-                imageSrc.length > 0 ? (
+                !loading ? (
                     <div style={{ width: '100%', height: 300, overflow: 'hidden' }}>
                         <Image
                             alt="example"
@@ -64,11 +67,11 @@ const ImageCard: React.FC<ImageCardProps> = ({ sliceImage, src, status, imageID,
                             }
                         />
                         <div className="card-buttons" style={{ position: 'absolute', bottom: 8, right: 8 }}>
-                            <Tooltip title="下载">
-                                <Button className='tooltip-button' icon={<DownloadOutlined />} onClick={ () => handleDownload(imageSrc)} />
+                            <Tooltip title="删除">
+                                <Button className='tooltip-button' icon={<DeleteOutlined />} onClick={() => handleDelete(image)} />
                             </Tooltip>
                             <Tooltip title="放大">
-                                <Button className='tooltip-button' icon={<ZoomInOutlined />} onClick={handlePreview}/>
+                                <Button className='tooltip-button' icon={<ZoomInOutlined />} onClick={handlePreview} />
                             </Tooltip>
                             <Tooltip title="微调">
                                 <Button className='tooltip-button' icon={<AppstoreAddOutlined />} />
@@ -76,9 +79,13 @@ const ImageCard: React.FC<ImageCardProps> = ({ sliceImage, src, status, imageID,
                         </div>
                     </div>
                 ) : (
-                    <div style={{ width: '100%', height: 300, overflow: 'hidden', display: 'flex', alignContent: "center", justifyContent: 'center', flexDirection: 'column' }}>
+                    <div className='progress-container'>
+                        {
+                            imageSrc && imageSrc.length > 0 ? (<img src={imageSrc} className={"progress-image-" + imageIndex} alt={"progress-image-" + imageIndex}>
+                            </img>) : null
+                        }
                         <Spin></Spin>
-                        <div style={{ textAlign: "center", padding: "16px" }}>{message}</div>
+                        <div style={{ textAlign: "center", padding: "16px", zIndex: "1" }}>{message}</div>
                     </div>
                 )
 
@@ -88,19 +95,49 @@ const ImageCard: React.FC<ImageCardProps> = ({ sliceImage, src, status, imageID,
 };
 
 interface ImageGridProps {
-    images: ImageCardProps[];
+    images: ImageData[];
+    handleDelete: (image: ImageData) => void;
 }
 
-const ImageGrid: React.FC<ImageGridProps> = ({ images }) => {
+const ImageGrid: React.FC<ImageGridProps> = ({ images, handleDelete }) => {
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [image, setImage] = useState<ImageData | undefined>(undefined);
+
+    const handleOk = () => {
+        setIsModalOpen(false);
+        if (image) {
+            handleDelete(image);
+            setImage(undefined);
+        }
+    };
+
+    const handleCancel = () => {
+        setIsModalOpen(false);
+        setImage(undefined);
+    };
+
     return (
         <div className='image-grid-container'>
             <Row gutter={[16, 16]}>
                 {images.map((image, index) => (
                     <Col key={index}>
-                        <ImageCard {...image} />
+                        <ImageCard image={image} handleDelete = {() => {
+                            setIsModalOpen(true);
+                            setImage(image);
+                        }} />
                     </Col>
                 ))}
             </Row>
+            <Modal title="删除图片！"
+                open={isModalOpen}
+                onOk={handleOk}
+                onCancel={handleCancel}
+                cancelText="取消" // Change the cancel button text
+                okText="确定" // Change the ok button text
+            >
+                <p>即将删除选中的图片</p>
+                <p>是否确认？</p>
+            </Modal>
         </div>
     );
 };
