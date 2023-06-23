@@ -12,4 +12,9 @@
     padding: 56px;
     overflow-y: scroll;
     max-height: calc(100vh - 112px);
+    flex-grow: 1;
+}
+
+.tooltip-button {
+    margin: 4px;
 }

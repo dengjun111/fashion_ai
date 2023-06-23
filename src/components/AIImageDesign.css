@@ -11,8 +11,10 @@
     border-right: 1px solid rgba(0, 0, 0, 0.08);
     flex-direction: column;
     width: 393px;
+    min-width: 393px;
     height: 100%;
     padding: 16px 32px;
+    overflow: scroll;
 }
 
 .AIImage-result-panel {
@@ -74,7 +76,7 @@ div.ant-upload {
 }
 
 .ant-color-picker-input-container {
-    height: 0; 
+    height: 0;
     overflow: hidden;
 }
 
@@ -101,7 +103,7 @@ div.ant-upload {
     margin-bottom: 16px;
 }
 
-.generate-empty-title{
+.generate-empty-title {
     font-size: 20px;
     font-weight: 600;
     margin-bottom: 16px;
@@ -111,4 +113,16 @@ div.ant-upload {
     color: gray;
     font-size: 14px;
     font-weight: 400;
+}
+
+.uploader .tooltip-button {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.uploader:hover .tooltip-button {
+    opacity: 1;
 }

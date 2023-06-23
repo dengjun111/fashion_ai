@@ -3,10 +3,11 @@ import { Button } from 'antd';
 import type { RadioChangeEvent } from 'antd';
 import type { Color } from 'antd/es/color-picker';
 import { ColorPicker } from "antd";
-import { message, Upload, Card, Row, Col, Radio, UploadFile  } from 'antd';
-import { CloudUploadOutlined } from '@ant-design/icons';
-import ImageGrid, {ImageCardProps} from "./ImageGrid";
+import { message, Upload, Card, Row, Col, Radio, UploadFile, Tooltip } from 'antd';
+import { CloudUploadOutlined, DeleteOutlined } from '@ant-design/icons';
+import ImageGrid, { ImageCardProps } from "./ImageGrid";
 import { ColorNames, ColorCodes } from './Colors'
+import { SliceImage } from './SliceImage'
 import './AIImageDesign.css'
 import LongImage from '../assets/long.png'
 import ShortImage from '../assets/short.png'
@@ -22,7 +23,7 @@ interface SketchUploadProps {
     base64String: string | undefined;
 }
 
-const SketchUpload: React.FC<SketchUploadProps> = ({handleImageUpload, base64String}) => {
+const SketchUpload: React.FC<SketchUploadProps> = ({ handleImageUpload, base64String }) => {
     const [imageString, setImageString] = useState<string>("");
     const beforeUpload = (file: UploadFile): boolean => {
         const isImage = file.type?.startsWith('image/');
@@ -30,6 +31,11 @@ const SketchUpload: React.FC<SketchUploadProps> = ({handleImageUpload, base64Str
             message.error('You can only upload image file!');
         }
         return isImage || false;
+    }
+
+    const handleClear = (e: React.MouseEvent) => {
+        e.stopPropagation()
+        setImageString("")
     }
 
     const customRequest = (options: any) => {
@@ -56,8 +62,11 @@ const SketchUpload: React.FC<SketchUploadProps> = ({handleImageUpload, base64Str
 
     return <Dragger {...dragProps}>
         {imageString && imageString.length > 0 ? (
-            <div style={{ marginTop: '16px' }}>
+            <div className="uploader" style={{ marginTop: '16px', position:"relative"}}>
                 <img src={imageString} alt="Uploaded" style={{ maxWidth: '100%', maxHeight: '300px' }} />
+                <Tooltip title="清除" >
+                    <Button className='tooltip-button' icon={<DeleteOutlined />} onClick={handleClear} />
+                </Tooltip>
             </div>
         ) : (
             <div>
@@ -77,7 +86,7 @@ interface ColorSelectorProps {
 }
 
 
-const ColorSelector: React.FC<ColorSelectorProps> = ({updateColor}) => {
+const ColorSelector: React.FC<ColorSelectorProps> = ({ updateColor }) => {
     const [color, setColor] = useState<string>('rgba(255, 0, 0, 0)');
     const [name, setName] = useState<string>('');
 
@@ -86,6 +95,7 @@ const ColorSelector: React.FC<ColorSelectorProps> = ({updateColor}) => {
         const index = ColorCodes.indexOf(color.toHexString().toUpperCase());
         if (index === -1 || index >= ColorNames.length) {
             setName("undefined!");
+            updateColor("");
             return;
         }
         setName(ColorNames[index]);
@@ -169,7 +179,7 @@ interface ClothSelectorProps {
     updateCloth: (value: string) => void;
 }
 
-const ClothSelector: React.FC<ClothSelectorProps> = ({updateCloth}) => {
+const ClothSelector: React.FC<ClothSelectorProps> = ({ updateCloth }) => {
     const [value, setValue] = useState("");
 
     const onChange = (e: RadioChangeEvent) => {
@@ -179,8 +189,8 @@ const ClothSelector: React.FC<ClothSelectorProps> = ({updateCloth}) => {
     };
 
     return (
-        <div style={{marginBottom:'16px'}}>
-            <h1 style={{marginBottom:'8px'}} className="color-selector-title">面料：</h1>
+        <div style={{ marginBottom: '16px' }}>
+            <h1 style={{ marginBottom: '8px' }} className="color-selector-title">面料：</h1>
             <Radio.Group onChange={onChange} value={value}>
                 <Radio value="">无设置</Radio>
                 <Radio value="Nylon">尼龙</Radio>
@@ -190,6 +200,34 @@ const ClothSelector: React.FC<ClothSelectorProps> = ({updateCloth}) => {
                 <Radio value="Wool">羊毛</Radio>
                 <Radio value="Coated Nylon">涂层尼龙</Radio>
                 <Radio value="Spandex">氨纶</Radio>
+            </Radio.Group>
+        </div>
+    );
+};
+
+interface SilhouetteSelectorProps {
+    updateSilhouette: (value: string) => void;
+}
+
+const SilhouetteSelector: React.FC<SilhouetteSelectorProps> = ({ updateSilhouette }) => {
+    const [value, setValue] = useState("");
+
+    const onChange = (e: RadioChangeEvent) => {
+        const newValue = e.target.value === value ? "" : e.target.value;
+        setValue(newValue);
+        updateSilhouette(newValue);
+    };
+
+    return (
+        <div style={{ marginBottom: '16px' }}>
+            <h1 style={{ marginBottom: '8px' }} className="color-selector-title">版型：</h1>
+            <Radio.Group onChange={onChange} value={value}>
+                <Radio value="">无设置</Radio>
+                <Radio value="Slim Fit">修身</Radio>
+                <Radio value="Straight Fit">直筒</Radio>
+                <Radio value="Loose Fit">宽松</Radio>
+                <Radio value="A-line Fit">A 字</Radio>
+                <Radio value="High-waist Fit">高腰</Radio>
             </Radio.Group>
         </div>
     );
@@ -223,16 +261,17 @@ interface EditPanelProps {
     handleSubmit: (prompt: string, base64Image: string | undefined) => void;
 }
 
-function generatePrompt(color: string, style: string, cloth: string) {
-    return `a woman\'s ${style.length > 0 ? style : "Down Jacket"},${color.length > 0 ? " " + color + " color," : ""}${cloth.length > 0 ? " made of " +  cloth + " fabric," : ""} white background --no person`
+function generatePrompt(color: string, style: string, cloth: string, silhouette: string) {
+    return `a woman's ${style.length > 0 ? style : "Down Jacket"},${color.length > 0 ? " " + color + " color," : ""}${cloth.length > 0 ? " made of " + cloth + " fabric," : ""}${silhouette.length > 0 ? " " + silhouette + "," : ""} white background --no person`
 }
 
 
-const EditorPanel: React.FC<EditPanelProps> = ({handleSubmit}) => {
+const EditorPanel: React.FC<EditPanelProps> = ({ handleSubmit }) => {
 
     var color = "";
     var style = "";
     var cloth = "";
+    var silhouette = "";
     var base64 = "";
 
     const handleImageUpload = (base64Image: string | undefined) => {
@@ -240,24 +279,26 @@ const EditorPanel: React.FC<EditPanelProps> = ({handleSubmit}) => {
     }
 
     const handleGenerate = () => {
-        handleSubmit(generatePrompt(color, style, cloth), base64);
+        handleSubmit(generatePrompt(color, style, cloth, silhouette), base64);
     }
 
 
     return <div className="AIImage-edit-panel">
         <h1 className="editor-title">设计参数</h1>
-        <SketchUpload base64String={base64} handleImageUpload={handleImageUpload}/>
-        <div style={{padding:"20px"}}></div>
+        <SketchUpload base64String={base64} handleImageUpload={handleImageUpload} />
+        <div style={{ padding: "20px" }}></div>
         <ColorSelector updateColor={(value: string) => {
             color = value;
         }} />
         <StyleSelector updateStyle={(value: string) => {
             style = value;
-        }}/>
+        }} />
         <ClothSelector updateCloth={(value: string) => {
             cloth = value;
-        }}/>
-        {/* <MadeSelector /> */}
+        }} />
+        <SilhouetteSelector updateSilhouette={(value: string) => {
+            silhouette = value;
+        }} />
         <Button type="primary" block onClick={handleGenerate}>生成</Button>
     </div>
 }
@@ -274,6 +315,8 @@ const EmptyResult: React.FC = () => {
 
 type ApiResponse = {
     status: 'NOT_START' | 'SUBMITTED' | 'IN_PROGRESS' | 'SUCCESS' | 'FAILURE';
+    imageUrl: string;
+    progress: string;
 };
 
 async function getApiStatus(taskID: string): Promise<ApiResponse> {
@@ -282,6 +325,18 @@ async function getApiStatus(taskID: string): Promise<ApiResponse> {
     const data: ApiResponse = await response.json();
     return data;
 }
+
+const testImages = [
+    {
+        status: "submited",
+        message: "已提交，等待中..."
+    },
+    {
+        status: "generated",
+        message: "已生成！",
+        src: "https://cdn.discordapp.com/attachments/1091550235068747820/1121268367337193492/ericdengjun_2396736700192552_a_womans_Down_Jacket_red_color_mad_b8e52f25-c607-4502-aebc-6341319509e2.png"
+    }
+];
 
 
 const AIImageDesign: React.FC = () => {
@@ -298,70 +353,106 @@ const AIImageDesign: React.FC = () => {
                 clearInterval(timerId);
                 timerId = 0;
             }
+            let imageUrl = response.imageUrl;
+            let slices = await SliceImage(imageUrl);
             setImages((prevImages) =>
                 prevImages.map((image) => {
                     let tmpImage = { ...image };
-                    if (tmpImage.pendingID === pendingImage) {
+                    if (tmpImage.imageID === pendingImage) {
                         tmpImage.status = 'generated';
+                        tmpImage.message = "完成！";
+                        tmpImage.progress = parseInt(response.progress.replace("%", ""))
+                        tmpImage.sliceImage = slices[tmpImage.imageIndex || 0];
                     }
                     return tmpImage;
                 })
             );
+        } else if (response.status === 'IN_PROGRESS') {
+            let imageUrl = response.imageUrl;
+            if (false && imageUrl && imageUrl.length > 0) {
+                let slices = await SliceImage(imageUrl);
+                const percent = parseInt(response.progress.replace("%", ""))
+                setImages((prevImages) =>
+                    prevImages.map((image) => {
+                        let tmpImage = { ...image };
+                        if (tmpImage.imageID === pendingImage && (!tmpImage.progress || tmpImage.progress < percent)) {
+                            tmpImage.status = 'in progress';
+                            tmpImage.message = "生成中：" + response.progress;
+                            tmpImage.progress = percent
+                            tmpImage.sliceImage = slices[tmpImage.imageIndex || 0];
+                        }
+                        return tmpImage;
+                    }))
+            } else {
+                setImages((prevImages) =>
+                    prevImages.map((image) => {
+                        let tmpImage = { ...image };
+                        if (tmpImage.imageID === pendingImage) {
+                            tmpImage.status = 'in progress';
+                            tmpImage.message = "生成中：" + response.progress;
+                        }
+                        return tmpImage;
+                    }))
+            }
+
+
+
+        } else if (response.status === 'NOT_START') {
+
         } else {
-            console.log('API job is still pending');
+            console.log(response);
         }
     };
     async function postData(url = '', data = {}) {
         const response = await fetch(url, {
-          method: 'POST', // *GET, POST, PUT, DELETE, etc.
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(data) // body data type must match "Content-Type" header
+            method: 'POST', // *GET, POST, PUT, DELETE, etc.
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data) // body data type must match "Content-Type" header
         });
-      
-        return response.json(); // parses JSON response into native JavaScript objects
-      }
 
-      const handleSubmit = async (prompt: string, base64Image: string | undefined) => {
+        return response.json(); // parses JSON response into native JavaScript objects
+    }
+
+    const handleSubmit = async (prompt: string, base64Image: string | undefined) => {
         const data = {
             base64: base64Image,
             prompt: prompt,
         };
-    
-        try {
-          const response = await postData('/mj/submit/imagine', data);
-        //   const response = {
-        //     code: 1,
-        //     result: '0564942927917391',
-        //     description: 'success'
-        //   }
-          if (response.code === 1) {
-            message.success(response.description);
-            pendingImage = response.result;
-            let tmpImages = [...images];
-            for (let i = 0; i < 4; i++) {
-                tmpImages.push({
-                    status: "generating",
-                    src: "",
-                    message: "正在生成中...",
-                    pendingID: pendingImage,
-                    imageIndex: i
-                });
-            }
-            setImages(tmpImages);
-            const interval = 5000; // 0.5 seconds
-            const id = window.setInterval(checkStatus, interval);
-            timerId = id;
-          }
 
-          console.log('Response:', response);
+        try {
+            const response = await postData('/mj/submit/imagine', data);
+            //   const response = {
+            //     code: 1,
+            //     result: '0564942927917391',
+            //     description: 'success'
+            //   }
+            if (response.code === 1) {
+                message.success(response.description);
+                pendingImage = response.result;
+                let tmpImages = [...images];
+                for (let i = 0; i < 4; i++) {
+                    tmpImages.push({
+                        status: "submited",
+                        message: "已提交，等待中...",
+                        imageID: pendingImage,
+                        imageIndex: i
+                    });
+                }
+                setImages(tmpImages);
+                const interval = 5000; // 0.5 seconds
+                const id = window.setInterval(checkStatus, interval);
+                timerId = id;
+            }
+
+            console.log('Response:', response);
         } catch (error) {
-          console.error('Error:', error);
+            console.error('Error:', error);
         }
-      };
+    };
     return <div className="AIImage-Design-container">
-        <EditorPanel handleSubmit={handleSubmit}/>
+        <EditorPanel handleSubmit={handleSubmit} />
         {images.length === 0 ? <EmptyResult /> : <ImageGrid images={images} />}
     </div>
 }
