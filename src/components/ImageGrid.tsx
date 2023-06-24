@@ -16,11 +16,12 @@ export interface ImageData {
 export interface ImageCardProps {
     image: ImageData;
     handleDelete: (image: ImageData) => void;
+    handleVariation: (image: ImageData) => void;
 }
 
 
 
-const ImageCard: React.FC<ImageCardProps> = ({ image, handleDelete }) => {
+const ImageCard: React.FC<ImageCardProps> = ({ image, handleDelete, handleVariation }) => {
 
     const { src, sliceImage, status, message, imageIndex } = image;
 
@@ -74,7 +75,7 @@ const ImageCard: React.FC<ImageCardProps> = ({ image, handleDelete }) => {
                                 <Button className='tooltip-button' icon={<ZoomInOutlined />} onClick={handlePreview} />
                             </Tooltip>
                             <Tooltip title="微调，再生成4张">
-                                <Button className='tooltip-button' icon={<AppstoreAddOutlined />} />
+                                <Button className='tooltip-button' icon={<AppstoreAddOutlined/>} onClick={() => handleVariation(image)} />
                             </Tooltip>
                         </div>
                     </div>
@@ -97,6 +98,7 @@ const ImageCard: React.FC<ImageCardProps> = ({ image, handleDelete }) => {
 interface ImageGridProps {
     images: ImageData[];
     handleDelete: (image: ImageData) => void;
+    handleVariation: (image: ImageData) => void;
 }
 
 export interface ChildComponentHandle {
@@ -107,7 +109,7 @@ const ImageGrid = (
     props: ImageGridProps,
     ref: ForwardedRef<ChildComponentHandle>) => {
     const scrollDivRef = useRef<HTMLDivElement>(null);
-    const {images, handleDelete } = props;
+    const {images, handleDelete, handleVariation } = props;
 
     const scrollToBottom = () => {
         if (scrollDivRef.current) {
@@ -115,12 +117,17 @@ const ImageGrid = (
         }
     };
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isForDelete, setIsForDelete] = useState(false);
     const [image, setImage] = useState<ImageData | undefined>(undefined);
 
     const handleOk = () => {
         setIsModalOpen(false);
         if (image) {
-            handleDelete(image);
+            if (isForDelete) {
+                handleDelete(image);
+            } else {
+                handleVariation(image);
+            }
             setImage(undefined);
         }
     };
@@ -140,20 +147,27 @@ const ImageGrid = (
                 {images.map((image, index) => (
                     <Col key={index}>
                         <ImageCard image={image} handleDelete={() => {
+                            setIsForDelete(true);
                             setIsModalOpen(true);
                             setImage(image);
-                        }} />
+                        }}
+                        handleVariation={() => {
+                            setIsForDelete(false);
+                            setIsModalOpen(true);
+                            setImage(image);
+                        }}
+                         />
                     </Col>
                 ))}
             </Row>
-            <Modal title="删除图片！"
+            <Modal title={isForDelete ? "删除图片！" : "微调图片！"}
                 open={isModalOpen}
                 onOk={handleOk}
                 onCancel={handleCancel}
                 cancelText="取消" // Change the cancel button text
                 okText="确定" // Change the ok button text
             >
-                <p>即将删除选中的图片</p>
+                <p>{isForDelete ? "即将删除选中图片" : "基于当前选择图片微调生成4张新的图片" }</p>
                 <p>是否确认？</p>
             </Modal>
         </div>

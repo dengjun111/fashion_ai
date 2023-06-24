@@ -390,6 +390,10 @@ const AIImageDesign: React.FC = () => {
     }, [images]);
 
     const checkStatus = async () => {
+        if (pendingImage.current === "") {
+            console.log('No pending image');
+            return;
+        }
         const response = await getApiStatus(pendingImage.current);
 
         if (response.status === 'SUCCESS') {
@@ -444,8 +448,8 @@ const AIImageDesign: React.FC = () => {
 
 
 
-        } else if (response.status === 'NOT_START') {
-
+        } else if (response.status === 'NOT_START' || response.status === 'SUBMITTED') {
+            console.log(response);
         } else {
             console.log('API job failed');
             pendingImage.current = "";
@@ -465,6 +469,10 @@ const AIImageDesign: React.FC = () => {
     }
 
     const handleDelete = (image: ImageData) => {
+        if (pendingImage.current.length > 0) {
+            message.error("请等待上一张图片生成完成");
+            return;
+        }
         var deleteLastOne = false;
         setImages((prevImages) => prevImages.filter(
             (tmp) => {
@@ -479,6 +487,41 @@ const AIImageDesign: React.FC = () => {
         ));
         if (deleteLastOne) {
             localStorage.removeItem("images");
+        }
+    }
+
+    const handleVariation = async (image: ImageData) => {
+        if (pendingImage.current.length > 0) {
+            message.error("请等待上一张图片生成完成");
+            return;
+        }
+
+        try {
+            const response = await postData('/mj/submit/change', {
+                action: "VARIATION",
+                index: image.imageIndex || 0 + 1,
+                taskId: image.imageID
+            });
+            if (response.code === 1) {
+                shouldScrollRef.current = true;
+                message.success(response.description);
+                pendingImage.current = response.result;
+                let tmpImages = [...images];
+                for (let i = 0; i < 4; i++) {
+                    tmpImages.push({
+                        status: "submitted",
+                        message: "已提交，等待中...",
+                        imageID: pendingImage.current,
+                        imageIndex: i
+                    });
+                }
+                setImages(tmpImages);
+                const interval = 5000; // 0.5 seconds
+                const id = window.setInterval(checkStatus, interval);
+                timerId.current = id;
+            }
+        } catch (error) {
+            console.error('Error:', error);
         }
     }
 
@@ -526,7 +569,7 @@ const AIImageDesign: React.FC = () => {
     };
     return <div className="AIImage-Design-container">
         <EditorPanel handleSubmit={handleSubmit} />
-        {images.length === 0 ? <EmptyResult /> : <ImageGrid ref={childRef} images={images} handleDelete={handleDelete} />}
+        {images.length === 0 ? <EmptyResult /> : <ImageGrid ref={childRef} images={images} handleDelete={handleDelete} handleVariation={handleVariation} />}
     </div>
 }
 
