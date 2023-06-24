@@ -73,7 +73,7 @@ const ImageCard: React.FC<ImageCardProps> = ({ image, handleDelete }) => {
                             <Tooltip title="放大">
                                 <Button className='tooltip-button' icon={<ZoomInOutlined />} onClick={handlePreview} />
                             </Tooltip>
-                            <Tooltip title="微调">
+                            <Tooltip title="微调，再生成4张">
                                 <Button className='tooltip-button' icon={<AppstoreAddOutlined />} />
                             </Tooltip>
                         </div>

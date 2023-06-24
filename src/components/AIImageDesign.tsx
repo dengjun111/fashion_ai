@@ -302,40 +302,6 @@ async function getApiStatus(taskID: string): Promise<ApiResponse> {
     return data;
 }
 
-const testImages: ImageData[] = [
-    {
-        status: "submited",
-        message: "已提交，等待中..."
-    },
-    {
-        status: "generated",
-        message: "正在生成中...: 31%",
-        imageIndex: 0,
-        src: "https://cdn.discordapp.com/attachments/1091550235068747820/1121592705387081808/ericdengjun_8574459851782432_a_womans_Long_Down_Coat_white_back_3b95cb7f-964f-4f15-a570-e1ad9f02f569.png"
-    },
-    {
-        status: "in progress",
-        message: "正在生成中...: 31%",
-        imageIndex: 1,
-        src: "https://cdn.discordapp.com/attachments/1091550235068747820/1121592705387081808/ericdengjun_8574459851782432_a_womans_Long_Down_Coat_white_back_3b95cb7f-964f-4f15-a570-e1ad9f02f569.png"
-    },
-    {
-        status: "in progress",
-        message: "正在生成中...: 31%",
-        imageIndex: 2,
-        src: "https://cdn.discordapp.com/attachments/1091550235068747820/1121592705387081808/ericdengjun_8574459851782432_a_womans_Long_Down_Coat_white_back_3b95cb7f-964f-4f15-a570-e1ad9f02f569.png"
-    },
-    {
-        status: "in progress",
-        message: "正在生成中...: 31%",
-        imageIndex: 3,
-        src: "https://cdn.discordapp.com/attachments/1091550235068747820/1121592705387081808/ericdengjun_8574459851782432_a_womans_Long_Down_Coat_white_back_3b95cb7f-964f-4f15-a570-e1ad9f02f569.png"
-    }
-];
-
-
-
-
 const AIImageDesign: React.FC = () => {
     var pendingImage = "";
     const [images, setImages] = useState<ImageData[]>([]);
@@ -477,20 +443,6 @@ const AIImageDesign: React.FC = () => {
         }
     }
 
-    const mockSubmit = (prompt: string, base64Image: string | undefined) => {
-        let tmpImages = [...images];
-        for (let i = 0; i < 4; i++) {
-            tmpImages.push({
-                status: "generated",
-                message: "生成完成",
-                imageID: "0564942927917391",
-                imageIndex: i,
-                src: "https://cdn.discordapp.com/attachments/1091550235068747820/1121592705387081808/ericdengjun_8574459851782432_a_womans_Long_Down_Coat_white_back_3b95cb7f-964f-4f15-a570-e1ad9f02f569.png"
-            });
-        }
-        setImages(tmpImages);
-    }
-
     const handleSubmit = async (prompt: string, base64Image: string | undefined) => {
         const data = {
             base64: base64Image,
@@ -510,7 +462,7 @@ const AIImageDesign: React.FC = () => {
                 let tmpImages = [...images];
                 for (let i = 0; i < 4; i++) {
                     tmpImages.push({
-                        status: "submited",
+                        status: "submitted",
                         message: "已提交，等待中...",
                         imageID: pendingImage,
                         imageIndex: i
