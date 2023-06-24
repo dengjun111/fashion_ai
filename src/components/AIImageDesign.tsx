@@ -5,7 +5,7 @@ import type { Color } from 'antd/es/color-picker';
 import { ColorPicker } from "antd";
 import { message, Upload, Card, Row, Col, Radio, UploadFile, Tooltip } from 'antd';
 import { CloudUploadOutlined, DeleteOutlined } from '@ant-design/icons';
-import ImageGrid, { ImageData, ChildComponentHandle  } from "./ImageGrid";
+import ImageGrid, { ImageData, ChildComponentHandle } from "./ImageGrid";
 import { ColorNames, ColorCodes } from './Colors'
 import { SliceImage } from './SliceImage'
 import './AIImageDesign.css'
@@ -306,11 +306,11 @@ const AIImageDesign: React.FC = () => {
     var pendingImage = useRef<string>("");
     const shouldScrollRef = useRef<boolean>(false);
     const [images, setImages] = useState<ImageData[]>([]);
-    var timerId = 0;
+    var timerId = useRef<number>(0);
 
     const childRef = useRef<ChildComponentHandle>(null);
     useEffect(() => {
-        const loadImages = async () => {
+        const loadImages = () => {
             const imagesString = localStorage.getItem("images");
             if (imagesString) {
                 const imageFromStorage = JSON.parse(imagesString) as ImageData[];
@@ -321,20 +321,48 @@ const AIImageDesign: React.FC = () => {
                 for (let i = 0; i < imageFromStorage.length; i++) {
                     const image = imageFromStorage[i];
                     let imageID = (image.imageID || "") + (image.src || "");
-                    if (image.status === "generated" && image.src && !slicedImages.has(imageID)) {
-                        let slices = await SliceImage(image.src);
-                        slicedImages.add(imageID);
-                        imageFromStorage.forEach((tmp) => {
-                            if (tmp.imageID === image.imageID && tmp.src === image.src) {
-                                newImages.push({
-                                    ...tmp,
-                                    sliceImage: slices[tmp.imageIndex || 0]
-                                })
-                            }
+                    if (image.status === "generated" && image.src) {
+                        if (!slicedImages.has(imageID)) {
+                            slicedImages.add(imageID);
+                            SliceImage(image.src).then((slices) => {
+                                // imageFromStorage.forEach((tmp) => {
+                                //     if (tmp.imageID === image.imageID && tmp.src === image.src) {
+                                //         newImages.push({
+                                //             ...tmp,
+                                //             sliceImage: slices[tmp.imageIndex || 0]
+                                //         })
+                                //     }
+                                // });
+                                setImages((prev) =>
+                                    prev.map((tmp) => {
+                                        if (tmp.imageID === image.imageID && tmp.src === image.src) {
+                                            return {
+                                                ...tmp,
+                                                sliceImage: slices[tmp.imageIndex || 0],
+                                                status: "generated"
+                                            }
+                                        }
+                                        return tmp;
+                                    }
+                                    ));
+                            });
+                        }
+                        newImages.push({
+                            ...image,
+                            status: "Loading",
+                            message: "正在加载图片"
                         });
+                    } else if (image.imageID && (image.status === "in progress" || image.status === "submitted")) {
+                        if (pendingImage.current === "") {
+                            pendingImage.current = image.imageID;
+                            const interval = 5000; // 0.5 seconds
+                            const id = window.setInterval(checkStatus, interval);
+                            timerId.current = id;
+                        }
+                        newImages.push(image);
                     }
                 };
-                
+
                 setImages(newImages);
             }
         };
@@ -367,8 +395,8 @@ const AIImageDesign: React.FC = () => {
         if (response.status === 'SUCCESS') {
             console.log('API job is finished');
             if (timerId) {
-                clearInterval(timerId);
-                timerId = 0;
+                clearInterval(timerId.current);
+                timerId.current = 0;
             }
             let pendingImageID = pendingImage.current;
             pendingImage.current = "";
@@ -489,7 +517,7 @@ const AIImageDesign: React.FC = () => {
                 setImages(tmpImages);
                 const interval = 5000; // 0.5 seconds
                 const id = window.setInterval(checkStatus, interval);
-                timerId = id;
+                timerId.current = id;
             }
 
         } catch (error) {
