@@ -1,9 +1,10 @@
 const tasks = {};
 
 const submitImagine = (req, res) => {
-    const taskId = Date.now();
+    const taskId = Date.now().toString();
     tasks[taskId] = {
-        status: 'SUBMITTED',
+        status: 'IN_PROGRESS',
+        progress: 0,
     };
 
 
@@ -28,7 +29,7 @@ const submitImagine = (req, res) => {
             }
         }, 5000);
     }, 60 * 1000);
-    res.send({ code: 1, status: "SUBMITTED", result: taskId });
+    res.send({ code: 1, status: "SUBMITTED", result: taskId, description:"任务提交成功！" });
 };
 
 const fetchTask = (req, res) => {

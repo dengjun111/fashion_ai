@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useImperativeHandle, forwardRef, ForwardedRef } from 'react';
 import { Row, Col, Card, Spin, Image, Tooltip, Button, Modal } from 'antd';
 import { DeleteOutlined, ZoomInOutlined, AppstoreAddOutlined } from '@ant-design/icons';
 import './ImageGrid.css';
@@ -42,7 +42,7 @@ const ImageCard: React.FC<ImageCardProps> = ({ image, handleDelete }) => {
         imageSrc = sliceImage;
     } else if (src && src.length > 0) {
         imageSrc = src;
-    }  
+    }
 
     return (
         <Card
@@ -99,7 +99,21 @@ interface ImageGridProps {
     handleDelete: (image: ImageData) => void;
 }
 
-const ImageGrid: React.FC<ImageGridProps> = ({ images, handleDelete }) => {
+export interface ChildComponentHandle {
+    scrollToBottom: () => void;
+}
+
+const ImageGrid = (
+    props: ImageGridProps,
+    ref: ForwardedRef<ChildComponentHandle>) => {
+    const scrollDivRef = useRef<HTMLDivElement>(null);
+    const {images, handleDelete } = props;
+
+    const scrollToBottom = () => {
+        if (scrollDivRef.current) {
+            scrollDivRef.current.scrollTop = scrollDivRef.current.scrollHeight;
+        }
+    };
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [image, setImage] = useState<ImageData | undefined>(undefined);
 
@@ -116,12 +130,16 @@ const ImageGrid: React.FC<ImageGridProps> = ({ images, handleDelete }) => {
         setImage(undefined);
     };
 
+    useImperativeHandle(ref, () => ({
+        scrollToBottom,
+    }));
+
     return (
-        <div className='image-grid-container'>
+        <div className='image-grid-container' ref={scrollDivRef}>
             <Row gutter={[16, 16]}>
                 {images.map((image, index) => (
                     <Col key={index}>
-                        <ImageCard image={image} handleDelete = {() => {
+                        <ImageCard image={image} handleDelete={() => {
                             setIsModalOpen(true);
                             setImage(image);
                         }} />
@@ -142,4 +160,4 @@ const ImageGrid: React.FC<ImageGridProps> = ({ images, handleDelete }) => {
     );
 };
 
-export default ImageGrid;
+export default forwardRef(ImageGrid);

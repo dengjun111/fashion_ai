@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Button } from 'antd';
 import type { RadioChangeEvent } from 'antd';
 import type { Color } from 'antd/es/color-picker';
 import { ColorPicker } from "antd";
 import { message, Upload, Card, Row, Col, Radio, UploadFile, Tooltip } from 'antd';
 import { CloudUploadOutlined, DeleteOutlined } from '@ant-design/icons';
-import ImageGrid, { ImageData } from "./ImageGrid";
+import ImageGrid, { ImageData, ChildComponentHandle  } from "./ImageGrid";
 import { ColorNames, ColorCodes } from './Colors'
 import { SliceImage } from './SliceImage'
 import './AIImageDesign.css'
@@ -303,10 +303,12 @@ async function getApiStatus(taskID: string): Promise<ApiResponse> {
 }
 
 const AIImageDesign: React.FC = () => {
-    var pendingImage = "";
+    var pendingImage = useRef<string>("");
+    const shouldScrollRef = useRef<boolean>(false);
     const [images, setImages] = useState<ImageData[]>([]);
     var timerId = 0;
 
+    const childRef = useRef<ChildComponentHandle>(null);
     useEffect(() => {
         const loadImages = async () => {
             const imagesString = localStorage.getItem("images");
@@ -318,9 +320,10 @@ const AIImageDesign: React.FC = () => {
 
                 for (let i = 0; i < imageFromStorage.length; i++) {
                     const image = imageFromStorage[i];
-                    if (image.status === "generated" && image.src && !slicedImages.has(image.src)) {
+                    let imageID = (image.imageID || "") + (image.src || "");
+                    if (image.status === "generated" && image.src && !slicedImages.has(imageID)) {
                         let slices = await SliceImage(image.src);
-                        slicedImages.add(image.src);
+                        slicedImages.add(imageID);
                         imageFromStorage.forEach((tmp) => {
                             if (tmp.imageID === image.imageID && tmp.src === image.src) {
                                 newImages.push({
@@ -352,10 +355,14 @@ const AIImageDesign: React.FC = () => {
             }));
             localStorage.setItem('images', imagesString);
         }
+        if (shouldScrollRef.current) {
+            shouldScrollRef.current = false;
+            childRef.current?.scrollToBottom();
+        }
     }, [images]);
 
     const checkStatus = async () => {
-        const response = await getApiStatus(pendingImage);
+        const response = await getApiStatus(pendingImage.current);
 
         if (response.status === 'SUCCESS') {
             console.log('API job is finished');
@@ -363,12 +370,14 @@ const AIImageDesign: React.FC = () => {
                 clearInterval(timerId);
                 timerId = 0;
             }
+            let pendingImageID = pendingImage.current;
+            pendingImage.current = "";
             let imageUrl = response.imageUrl;
             let slices = await SliceImage(imageUrl);
             setImages((prevImages) =>
                 prevImages.map((image) => {
                     let tmpImage = { ...image };
-                    if (tmpImage.imageID === pendingImage) {
+                    if (tmpImage.imageID === pendingImageID) {
                         tmpImage.status = 'generated';
                         tmpImage.message = "完成！";
                         tmpImage.progress = parseInt(response.progress.replace("%", ""))
@@ -385,7 +394,7 @@ const AIImageDesign: React.FC = () => {
                 setImages((prevImages) =>
                     prevImages.map((image) => {
                         let tmpImage = { ...image };
-                        if (tmpImage.imageID === pendingImage && (!tmpImage.progress || tmpImage.progress < percent)) {
+                        if (tmpImage.imageID === pendingImage.current && (!tmpImage.progress || tmpImage.progress < percent)) {
                             tmpImage.status = 'in progress';
                             tmpImage.message = "生成中..." + response.progress;
                             tmpImage.progress = percent
@@ -397,7 +406,7 @@ const AIImageDesign: React.FC = () => {
                 setImages((prevImages) =>
                     prevImages.map((image) => {
                         let tmpImage = { ...image };
-                        if (tmpImage.imageID === pendingImage) {
+                        if (tmpImage.imageID === pendingImage.current) {
                             tmpImage.status = 'in progress';
                             tmpImage.message = "排队中，请稍后..."
                         }
@@ -410,6 +419,8 @@ const AIImageDesign: React.FC = () => {
         } else if (response.status === 'NOT_START') {
 
         } else {
+            console.log('API job failed');
+            pendingImage.current = "";
             console.log(response);
         }
     };
@@ -444,6 +455,12 @@ const AIImageDesign: React.FC = () => {
     }
 
     const handleSubmit = async (prompt: string, base64Image: string | undefined) => {
+
+        if (pendingImage.current.length > 0) {
+            message.error("请等待上一张图片生成完成");
+            return;
+        }
+
         const data = {
             base64: base64Image,
             prompt: prompt,
@@ -457,14 +474,15 @@ const AIImageDesign: React.FC = () => {
             //     description: 'success'
             //   }
             if (response.code === 1) {
+                shouldScrollRef.current = true;
                 message.success(response.description);
-                pendingImage = response.result;
+                pendingImage.current = response.result;
                 let tmpImages = [...images];
                 for (let i = 0; i < 4; i++) {
                     tmpImages.push({
                         status: "submitted",
                         message: "已提交，等待中...",
-                        imageID: pendingImage,
+                        imageID: pendingImage.current,
                         imageIndex: i
                     });
                 }
@@ -480,7 +498,7 @@ const AIImageDesign: React.FC = () => {
     };
     return <div className="AIImage-Design-container">
         <EditorPanel handleSubmit={handleSubmit} />
-        {images.length === 0 ? <EmptyResult /> : <ImageGrid images={images} handleDelete={handleDelete} />}
+        {images.length === 0 ? <EmptyResult /> : <ImageGrid ref={childRef} images={images} handleDelete={handleDelete} />}
     </div>
 }
 
